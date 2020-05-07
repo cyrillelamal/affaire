@@ -1,0 +1,39 @@
+{
+  "actions": [
+    {
+      "names": ["create", "new", "add", "a", "note", "n"],
+      "params": {
+          "-b": {"aliases": ["--body"], "field": "body"},
+          "-e": {"aliases": ["--expires-at"], "field": "expires_at"}
+      },
+      "action": "task_create"
+    },
+    {
+      "names": ["read", "r", "list", "l"],
+      "params": {
+          "-b": {"aliases": ["--body"], "field": "body"},
+          "-e": {"aliases": ["--expires-at"], "field": "expires_at"},
+          "-a": {"aliases": ["--active"], "field": "is_active"},
+          "-l": {"aliases": ["--limit"], "field": null}
+      },
+      "action": "task_read"
+    },
+    {
+      "names": ["delete", "del", "d"],
+      "params": {
+          "-b": {"aliases": ["--body"], "field": "body"},
+          "-e": {"aliases": ["--expires-at"], "field": "expires_at"},
+          "-a": {"aliases": ["--active"], "field": "is_active"},
+          "-l": {"aliases": ["--limit"], "field": null}
+      },
+      "action": "task_delete"
+    },
+    {
+      "names": ["auth"],
+      "params": {
+        "-f": {"aliases":  ["--force"]}
+      },
+      "action": "authenticate"
+    }
+  ]
+}
