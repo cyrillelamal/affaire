@@ -47,9 +47,9 @@ class AbstractView:
         """
         pass
 
-    @property
-    def controller(self):
-        return self._controller
+    # @property
+    # def controller(self):
+    #     return self._controller
 
     @property
     def args(self):

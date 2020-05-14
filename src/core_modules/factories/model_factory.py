@@ -1,16 +1,20 @@
-# class used to fill model instances with fetched data
-from src.core_modules.abstract_model import AbstractModel
+from typing import Type
 
 
 # TODO: implement it
 # TODO: walk model's columns
 # TODO: ensure order of columns
 class ModelFactory:
-    def __init__(self, constructor: type(AbstractModel)):
+    """
+    Create objects
+    """
+    from src.core_modules.ORM.abstract_model import AbstractModel
+
+    def __init__(self, constructor: Type[AbstractModel]):
         self.constructor = constructor
 
     @staticmethod
-    def fill_row(constructor: type(AbstractModel), data_row: [tuple, list], eager=False):
+    def fill_row(constructor: Type[AbstractModel], data_row: [tuple, list], eager=False):
         """
         Fill single row.
         :param constructor: Model class.
@@ -39,7 +43,7 @@ class ModelFactory:
         :param data: Fetched row.
         :return: Model
         """
-        from src.core_modules.field_types import ForeignKey
+        from src.core_modules.ORM.field_types import ForeignKey
 
         # FIXME: self recursion
         def walker(instance_, cols, data_):

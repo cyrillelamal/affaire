@@ -1,8 +1,0 @@
-{
-  "isAuthorized": false,
-  "skipAuthentication": false,
-  "version": "1.0.0",
-  "help": {
-      "all": "Affaire TODO list: bla-bla-bla"
-  }
-}

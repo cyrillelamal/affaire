@@ -1,9 +1,7 @@
 import abc
-from typing import Type
 
 
 from src.core_modules import exceptions
-from src.core_modules.abstract_model import AbstractModel
 
 
 class FieldType:
@@ -22,6 +20,17 @@ class FieldType:
         self.unique = unique
         self.default = default
         self.use_default = use_default
+
+        self._name = None
+        self.model = None  # type: 'AbstractModel'
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, val: str):
+        self._name = val
 
     @abc.abstractmethod
     def get_type(self) -> str:
@@ -54,20 +63,3 @@ class FieldType:
             sql += f'DEFAULT {default_val}'
 
         return sql.strip()
-
-    def set_model(self, model: Type[AbstractModel]):
-        """
-        Attach meta model constructor.
-        :param model:
-        :return:
-        """
-        self._model = model
-
-        return self
-
-    def get_model(self) -> Type[AbstractModel]:
-        """
-        Return model for which the field is related.
-        :return: Type[Model]
-        """
-        return self._model

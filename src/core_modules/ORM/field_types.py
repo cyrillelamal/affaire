@@ -1,18 +1,18 @@
 from typing import Type
 
-from src.core_modules.field_type import FieldType
+
+from src.core_modules.ORM.field_type import FieldType
 from src.core_modules import exceptions
 
-
-from src.core_modules.abstract_model import AbstractModel
+from src.core_modules.ORM.abstract_model import AbstractModel
 
 
 class IntegerField(FieldType):
     """
-    SQLite INTEGER type.
+    SQLite INTEGER type
     """
-    def __init__(self, autoincrement=False, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, autoincrement=False, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.autoincrement = autoincrement
 
     def get_type(self) -> str:
@@ -32,10 +32,10 @@ class IntegerField(FieldType):
 
 class RealField(FieldType):
     """
-    SQLite REAL type.
+    SQLite REAL type
     """
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, *args,  **kwargs):
+        super().__init__(*args, **kwargs)
 
     def get_type(self) -> str:
         return 'REAL'
@@ -43,10 +43,10 @@ class RealField(FieldType):
 
 class TextField(FieldType):
     """
-    SQLite TEXT type.
+    SQLite TEXT type
     """
-    def __init__(self, datetime=False, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, datetime=False, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.datetime = datetime  # apply datetime function while SELECT
 
@@ -64,12 +64,15 @@ class BlobField(FieldType):
 
 class ForeignKey(FieldType):
     """
-    Relation field.
+    Relation field
     """
-    def __init__(self, ref: [str, AbstractModel], reversed_by=None, **kwargs):
+    CASCADE = 1
+    IGNORE = 2
+
+    def __init__(self, ref: [str, AbstractModel], reversed_by=None, on_delete=None, **kwargs):
         """
         Relation field.
-        :param ref:
+        :param ref: Referenced class or its name in CamelCase
         :param reversed_by:
         :param kwargs:
         """
@@ -78,20 +81,24 @@ class ForeignKey(FieldType):
         self.reversed_by = reversed_by
         self._ref = ref
 
+        self.on_delete = on_delete
+
     def get_type(self) -> str:
-        return self.get_ref().get_pk_field().field.get_type()
+        return self.get_ref().get_pk_col().get_type()
 
     def to_sql(self) -> str:
         ref = self.get_ref()
-        # noinspection PyTypeChecker
-        if not issubclass(ref, AbstractModel):
-            raise TypeError
 
-        ref_pk = ref.get_pk_field().field_name
+        ref_name = self.get_ref_col_name()
 
-        col_name = f'{ref.get_table_name()}{AbstractModel.WORD_JOINER}{ref_pk}'
-
-        sql = f'{col_name} {super().to_sql()}'
+        sql = f'{ref.get_pk_col().get_type()},\n'
+        sql += f'CONSTRAINT fk_{ref.get_table_name()}s\n'
+        sql += f'FOREIGN KEY ({ref_name})\n'
+        sql += f'REFERENCES {ref.get_table_name()}({ref.get_pk_col().name})\n'
+        if self.on_delete == ForeignKey.CASCADE:
+            sql += 'ON DELETE CASCADE'
+        if sql.endswith('\n'):
+            sql = sql[:-1]
 
         return sql
 
@@ -112,3 +119,13 @@ class ForeignKey(FieldType):
 
         # noinspection PyTypeChecker
         return self._ref
+
+    def get_ref_col_name(self):
+        """
+        Return column name based on the referenced table name and its primary key column.
+        :return:
+        """
+        ref = self.get_ref()
+        ref_pk = ref.get_pk_col().name
+
+        return f'{ref.get_table_name()}{AbstractModel.WORD_JOINER}{ref_pk}'

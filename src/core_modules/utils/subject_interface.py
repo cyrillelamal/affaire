@@ -14,5 +14,5 @@ class SubjectInterface:
         pass
 
     @abc.abstractmethod
-    def notify_observers(self):
+    def notify_observers(self, event: dict):
         pass
