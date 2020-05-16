@@ -22,10 +22,10 @@ class Main:
     @staticmethod
     def main(args: List[str]):
         db_path = Main.get_db_path(args)
+        Main.bound_db(db_path)
+
         settings_path = Main.get_settings_path(args)
         json_args_provider_path = Main.get_json_args_provider_path(args)
-
-        AbstractModel.DB_PATH = db_path
 
         settings_provider = JSONSettingsProvider(settings_path)
         args_schema_provider = JSONArgsSchemaProvider(json_args_provider_path)
@@ -72,6 +72,19 @@ class Main:
         json_args_provider_path = os.path.join(base_dir, 'args_schema.json')
 
         return json_args_provider_path
+
+    @staticmethod
+    def bound_db(db_path: str):
+        """
+        Bound the database path to the model.
+        Create the database.
+        :param db_path:
+        :return:
+        """
+        AbstractModel.DB_PATH = db_path
+
+        if not os.path.exists(db_path):
+            AbstractModel.init_db()
 
 
 if __name__ == '__main__':

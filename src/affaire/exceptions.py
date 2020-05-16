@@ -12,3 +12,11 @@ class SettingsKeyError(Exception):
 
 class HelpKeyError(SettingsKeyError):
     pass
+
+
+class UnknownParameterException(Exception):
+    pass
+
+
+class UndefinedValueException(Exception):
+    pass

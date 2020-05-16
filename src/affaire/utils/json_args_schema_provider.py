@@ -13,4 +13,7 @@ class JSONArgsSchemaProvider(ArgsSchemaProviderInterface):
 
     def load_schema(self) -> dict:
         with open(self._args_provider_path, 'rt') as f:
-            return json.loads(f.read())
+            try:
+                return json.loads(f.read())
+            except json.JSONDecodeError:
+                return dict()

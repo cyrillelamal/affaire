@@ -132,6 +132,7 @@ class QueryBuilder:
                 # either default value of forgotten value
                 if col.not_null and not col.use_default:
                     raise UndefinedFieldException(f'Column "{col_name}" requires a value')
+                # continue  # ' INSERT INTO "book" () VALUES ()'
                 col_val = None
 
             sql += f'"{col_name}", '
@@ -285,6 +286,8 @@ class QueryBuilder:
             predicate = self.IS
 
         sql = f'WHERE "{col_name}" {predicate} ?'
+        if predicate == self.LIKE:
+            term = '%' + term + '%'
         params = [term]
 
         stmt = Statement(sql, final=False, type_=Statement.WHERE)
@@ -304,13 +307,19 @@ class QueryBuilder:
         :param term: The right term
         :return:
         """
+        try:
+            prev_type = self.stmts[-1].type  # [-2]
+        except IndexError:
+            raise SQLSyntaxError('Unexpected "WHERE" statement')
+
         self.where(param, predicate, term)
 
-        # the parameter is the same as delegated to the base WHERE
-        last_stmt = self.stmts[-1]
-        sql = last_stmt.terms[0]
-        sql = 'AND ' + sql.replace('WHERE', '').strip()
-        last_stmt.terms[0] = sql
+        if prev_type == Statement.WHERE:
+            # the parameter is the same as delegated to the base 'WHERE'
+            last_stmt = self.stmts[-1]
+            sql = last_stmt.terms[0]
+            sql = 'AND ' + sql.replace('WHERE', '').strip()
+            last_stmt.terms[0] = sql
 
         return self
 

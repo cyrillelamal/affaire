@@ -34,9 +34,6 @@ class RealField(FieldType):
     """
     SQLite REAL type
     """
-    def __init__(self, *args,  **kwargs):
-        super().__init__(*args, **kwargs)
-
     def get_type(self) -> str:
         return 'REAL'
 

@@ -16,6 +16,9 @@ class FieldType:
         if unique:
             use_default = False
 
+        if use_default:
+            not_null = False
+
         self.not_null = not_null
         self.unique = unique
         self.default = default

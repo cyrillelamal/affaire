@@ -190,6 +190,16 @@ class AbstractModel:
 
         return cls._pk_col
 
+    @staticmethod
+    def init_db():
+        """
+        CREATE DATABASE with tables corresponding to the application.
+        :return:
+        """
+        for model in AbstractModel.__subclasses__():
+            if issubclass(model, AbstractModel):
+                model.create_table(True)
+
     @classmethod
     def _gen_pk(cls, name='id'):
         """

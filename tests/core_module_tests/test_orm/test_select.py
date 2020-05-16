@@ -11,9 +11,6 @@ from src.core_modules.ORM import AbstractModel
 from src.core_modules.ORM import field_types as ft
 
 
-User = namedtuple('User', ['last_name', 'first_name', 'dob'])
-
-
 class TestSelect(unittest.TestCase):
     DB_PATH = './test.db'
     NUM_OF_BOOKS = 5
@@ -217,6 +214,7 @@ class TestSelect(unittest.TestCase):
         self.assertEqual(offset, len(res))
 
     def test_order(self):
+        User = namedtuple('User', ['last_name', 'first_name', 'dob'])
         for i in range(self.NUM_OF_USERS):
             u = self.user()
             u.last_name = 'John' + str(random.randint(1, 100))

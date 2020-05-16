@@ -1,12 +1,12 @@
 import functools
-from typing import List, Iterable, Callable, Tuple
+from typing import List, Callable
 
 
 from src.core_modules import AbstractController
 from src.core_modules.utils import SubjectInterface, ObserverInterface
 from src.core_modules.utils import SettingsProviderInterface
 
-from src.affaire.exceptions import SettingsKeyError, HelpKeyError
+from src.affaire.exceptions import SettingsKeyError, HelpKeyError, UnknownParameterException
 from src.affaire.models import Task
 from src.affaire.utils import AuthenticationServer
 from src.affaire.utils import ArgsSchemaProviderInterface
@@ -33,7 +33,6 @@ def notify(action_name='', prefix='action_'):
     return notify_decorator
 
 
-# TODO: separate => { authentication_controller, affaire_controller }
 class AffaireController(AbstractController, SubjectInterface):
     """
     Observable
@@ -48,7 +47,8 @@ class AffaireController(AbstractController, SubjectInterface):
         self._observers = list()  # type: List[ObserverInterface]
 
         self._args = list()  # type: List[str]
-        self._args_schema = None  # CLI actions mapper type: dict
+        # CLI actions mapper
+        self._args_schema = None
 
         self._params = dict()  # mapped CLI params
 
@@ -65,18 +65,19 @@ class AffaireController(AbstractController, SubjectInterface):
         for observer in self._observers:
             observer.update(event)
 
+    # TODO: composition with DispatcherInterface
     # implementation
     def dispatch(self, args: List[str]):
         """
         Dispatcher based on main function arguments.
-        :param args: CLI parameters.
+        :param args: CLI parameters.=
         :return:
         """
-        first_arg = ''
+        first_arg = str()
         if len(args) > 1:
             _, first_arg, *self._args = args
 
-        for action in self.args_schema['actions']:
+        for action in self.args_schema.get('actions', dict()):
             if first_arg in action.get('names', list()):
                 self._params = action.get('params', dict())
                 action = getattr(self, action.get('action', None))
@@ -91,9 +92,12 @@ class AffaireController(AbstractController, SubjectInterface):
 
     @notify('authenticate')
     def authenticate(self):
-        AuthenticationServer().authenticate()
-        # TODO: authenticate
-        # TODO: set settings
+        res = AuthenticationServer().authenticate()
+
+        if res.get('successful', False):
+            self.settings['isAuthorized'] = True
+
+        return res
 
     def task_create(self):
         """
@@ -101,10 +105,15 @@ class AffaireController(AbstractController, SubjectInterface):
         :return:
         """
         task = Task()
-        for arg, val in self._fusion():
+
+        for arg, val in self._parse_args('task_create').items():
             for param, props in self._params.items():
                 if arg in [param, *props.get('aliases', list())]:
                     setattr(task, props.get('field'), val)
+                    break
+            else:
+                raise UnknownParameterException(f'Unknown parameter {arg}')
+
         task.save()
 
     @notify('task_read')
@@ -113,22 +122,66 @@ class AffaireController(AbstractController, SubjectInterface):
         SELECT
         :return:
         """
-        params = dict(self._fusion())
+        params = self._parse_args('task_read')
+
         return {
-            'task_list': Task.select(params)
+            'task_list': Task.select(params, self._params)
         }
 
-    # TODO: update
+    def task_update(self):
+        """
+        UPDATE
+        :return:
+        """
+        params = self._parse_args('task_update')
+
+        read_params = list()
+        for action in self.args_schema.get('actions', list()):  # type: dict
+            action_name = action.get('action', None)
+            if 'task_read' == action_name:
+                for short_arg, props in action.get('params', dict()).items():
+                    read_params.append(short_arg)
+                    read_params.extend(props.get('aliases', list()))
+
+        select_params = {
+            k: v
+            for k, v in params.items()
+            if k in read_params
+        }
+        update_params = {
+            k: v
+            for k, v in params.items()
+            if k not in read_params
+        }
+
+        tasks = Task.select(select_params, self._params)
+        for task in tasks:
+            if not update_params:
+                task.is_active = not task.is_active
+            for param, val in update_params.items():
+                props = self._params.get(param, None)
+                if props is None:
+                    raise UnknownParameterException(f'Unknown parameter {param}')
+                field_name = props.get('field', None)
+                if field_name:
+                    setattr(task, field_name, val)
+
+            task.save(False)
 
     def task_delete(self):
         """
         DELETE
         :return:
         """
-        params = dict(self._fusion())
-
-        for task in Task.select(params):
-            task.delete()
+        params = self._parse_args('task_delete')
+        if not params and not self._params.get('-f'):
+            self.notify_observers({
+                'action_name': 'action_task_delete',
+                'msg': 'This action will remove all your tasks. Are you sure? [y/n]: '
+            })
+        else:
+            for task in Task.select(params, self._params):
+                task.delete(True)
 
     @notify('help')
     def help(self):
@@ -148,7 +201,7 @@ class AffaireController(AbstractController, SubjectInterface):
             except KeyError:
                 raise HelpKeyError('The "panic" key is undefined')
 
-        return {'body': res}
+        return {'msg': res}
 
     @notify('version')
     def version(self):
@@ -157,7 +210,7 @@ class AffaireController(AbstractController, SubjectInterface):
         except KeyError:
             raise SettingsKeyError('The version is not provided')
 
-        return {'version': v}
+        return {'msg': v}
 
     @property
     def args_schema(self) -> dict:
@@ -173,12 +226,13 @@ class AffaireController(AbstractController, SubjectInterface):
         """
         self._settings_provider.dump_settings(self.settings)
 
-    def synchronize(self):
+    @staticmethod
+    def synchronize():
         """
         Synchronize with VK
         :return:
         """
-        pass
+        AuthenticationServer().synchronize()
 
     def _dispatch_meta(self, first_arg: str) -> Callable:
         """
@@ -193,25 +247,50 @@ class AffaireController(AbstractController, SubjectInterface):
 
         return action
 
-    # TODO: default argument's reducer
-    def _fusion(self) -> Iterable[Tuple[str, str]]:
+    def _parse_args(self, action_name: str) -> dict:
         """
         Fusion CLI arguments to pairs (key, value)
         :return:
         """
+        parsed_args = dict()
+
+        def default_params_range():
+            """Yield default argument's short names"""
+            schema = self.args_schema.get('actions', list())
+            for action in schema:  # type: dict
+                if action_name != action.get('action', None):
+                    continue
+                params = action.get('params', dict())
+                for short_arg in params.keys():
+                    yield short_arg
+            idx = 1
+            while True:
+                yield idx
+                idx += 1
+
+        default_params_generator = default_params_range()
+
         i = 0
         while i < len(self._args):
-            arg = self._args[i]  # current arg
-            val = None
-            try:
-                na = self._args[i+1]  # next arg
-                if not na.startswith('-'):
-                    val = na
-            except IndexError:
-                pass
-            if val is None:
-                i += 1
+            arg = self._args[i]
+            if arg.startswith('-'):
+                try:
+                    next_arg = self._args[i+1]
+                    if next_arg.startswith('-'):
+                        i += 1
+                        parsed_args[arg] = None
+                    else:
+                        i += 2
+                        parsed_args[arg] = next_arg
+                except IndexError:
+                    i += 1
+                    parsed_args[arg] = None
             else:
-                i += 2
+                i += 1
+                val = arg
+                arg = next(default_params_generator)
+                while arg in parsed_args:
+                    arg = next(default_params_generator)
+                parsed_args[arg] = val
 
-            yield arg, val
+        return parsed_args

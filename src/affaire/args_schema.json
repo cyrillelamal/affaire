@@ -14,17 +14,27 @@
           "-b": {"aliases": ["--body"], "field": "body"},
           "-e": {"aliases": ["--expires-at"], "field": "expires_at"},
           "-a": {"aliases": ["--active"], "field": "is_active"},
-          "-l": {"aliases": ["--limit"], "field": null}
+          "-s": {"aliases": ["--sort-by"], "field": null}
       },
       "action": "task_read"
+    },
+    {
+      "names": ["update", "u"],
+      "params": {
+          "-b": {"aliases": ["--body"], "field": "body"},
+          "-e": {"aliases": ["--expires-at"], "field": "expires_at"},
+          "-a": {"aliases": ["--active"], "field": "is_active"},
+          "-n": {"aliases": ["--new-body"], "field": "body"},
+          "-r": {"aliases": ["--new-expires-at"], "field": "expires_at"}
+      },
+      "action": "task_update"
     },
     {
       "names": ["delete", "del", "d"],
       "params": {
           "-b": {"aliases": ["--body"], "field": "body"},
           "-e": {"aliases": ["--expires-at"], "field": "expires_at"},
-          "-a": {"aliases": ["--active"], "field": "is_active"},
-          "-l": {"aliases": ["--limit"], "field": null}
+          "-a": {"aliases": ["--active"], "field": "is_active"}
       },
       "action": "task_delete"
     },

@@ -2,37 +2,10 @@ import webbrowser
 import threading
 import os
 from urllib import parse
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import HTTPServer
 
 
-class Handler(BaseHTTPRequestHandler):
-    """
-    API responses handler
-    """
-    RESPONSE = None  # type: dict
-
-    def do_GET(self):
-        query = parse.urlsplit(self.path).query
-        params = parse.parse_qs(query)
-
-        if self.path.startswith('/auth'):
-            self.send_response(200)
-            self.send_header('content-type', 'application/json')
-            self.end_headers()
-            self.wfile.write(str(params).encode('utf8'))
-        else:
-            self.html_response(
-                "Hey buddy, I think you've got the wrong door, "
-                "the leather club's two blocks down",
-                418
-            )
-        Handler.RESPONSE = params
-
-    def html_response(self, html: str, code: int):
-        self.send_response(code)
-        self.send_header('content-type', 'text/html')
-        self.end_headers()
-        self.wfile.write(html.encode('utf8'))
+from src.affaire.utils import VKAPIHandler
 
 
 class AuthenticationServer:
@@ -69,26 +42,28 @@ class AuthenticationServer:
 
         :return:
         """
+        print('auth')
         t = threading.Thread(target=self._run_server)
         # t.start()
-
+        #
         # self._open_dialog()
         # t.join()
 
-        res = Handler.RESPONSE
-        # TODO: uncomment and implement
+        res = VKAPIHandler.RESPONSE
+        return {}
+        # TODO: implement
+
+    def synchronize(self):
+        pass
 
     @staticmethod
     def _run_server():
         server_address = ('localhost', 8080)
-        httpd = HTTPServer(server_address, Handler)
+        httpd = HTTPServer(server_address, VKAPIHandler)
         while True:
             httpd.handle_request()
-            if Handler.RESPONSE is not None:
+            if VKAPIHandler.RESPONSE is not None:
                 break
 
     def _open_dialog(self):
         webbrowser.open(self.authentication_link)
-
-
-AuthenticationServer().authenticate()
