@@ -2,10 +2,10 @@ import datetime
 from typing import List
 
 
-from src.core_modules.ORM import QueryBuilder
 from src.core_modules.ORM import AbstractModel
 from src.core_modules.ORM.field_types import IntegerField, TextField
 from src.core_modules.factories import ModelFactory
+from src.core_modules.ORM import QueryBuilder
 
 from src.affaire.exceptions import UnknownParameterException
 from src.affaire.exceptions import UndefinedValueException
@@ -33,7 +33,7 @@ class Task(AbstractModel):
         super(Task, self).save(eager)
 
     @classmethod
-    def select(cls, params: dict, schema: dict) -> List[AbstractModel]:
+    def select(cls, params: dict = None, schema: dict = None) -> List[AbstractModel]:
         """
         Repository: particular realisation
         :param params: Parameters from CLI
@@ -42,22 +42,25 @@ class Task(AbstractModel):
         """
         qb = QueryBuilder(cls).select()
 
-        for param, val in params.items():  # user's input
-            for short_arg, props in schema.items():
-                if param in [short_arg, *props.get('aliases')]:
-                    field_name = props.get('field', None)
-                    if field_name is None:
-                        if val is None:
-                            raise UndefinedValueException(f'Parameter {param} requires a value')
-                    elif field_name in ['is_active']:
-                        qb.and_where(field_name, QueryBuilder.EQUALS, 1)
-                    else:
-                        qb.and_where(field_name, QueryBuilder.LIKE, val)
-                    break
-                else:
+        if params is not None and schema is not None:
+            for param, val in params.items():  # user's input
+                if param == '-f':
                     continue
-            else:
-                raise UnknownParameterException(f'Unknown parameter {param}')
+                for short_arg, props in schema.items():
+                    if param in [short_arg, *props.get('aliases')]:
+                        field_name = props.get('field', None)
+                        if field_name is None:
+                            if val is None:
+                                raise UndefinedValueException(f'Parameter {param} requires a value')
+                        elif field_name in ['is_active']:
+                            qb.and_where(field_name, QueryBuilder.EQUALS, 1)
+                        else:
+                            qb.and_where(field_name, QueryBuilder.LIKE, val)
+                        break
+                    else:
+                        continue
+                else:
+                    raise UnknownParameterException(f'Unknown parameter {param}')
 
         qb.build()
         qb.execute()

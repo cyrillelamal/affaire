@@ -3,7 +3,7 @@ from http.server import BaseHTTPRequestHandler
 
 
 # noinspection PyPep8Naming
-class VKAPIHandler(BaseHTTPRequestHandler):
+class APIHandler(BaseHTTPRequestHandler):
     """
     API responses handler
     """
@@ -24,10 +24,14 @@ class VKAPIHandler(BaseHTTPRequestHandler):
                 "the leather club's two blocks down",
                 418
             )
-        VKAPIHandler.RESPONSE = params
+
+        APIHandler.RESPONSE = params
 
     def html_response(self, html: str, code: int):
         self.send_response(code)
         self.send_header('content-type', 'text/html')
         self.end_headers()
         self.wfile.write(html.encode('utf8'))
+
+    def log_message(self, format_: str, *args) -> None:
+        return None

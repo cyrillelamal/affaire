@@ -1,5 +1,5 @@
 # server
-from src.affaire.utils.vk_api_handler import VKAPIHandler
+from src.affaire.utils.api_handler import APIHandler
 from src.affaire.utils.authentication_server import AuthenticationServer
 
 # concrete providers

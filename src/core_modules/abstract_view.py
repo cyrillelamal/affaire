@@ -9,9 +9,9 @@ class AbstractView:
     Observer
     Rather an interface.
     """
-    _controller = None  # type: AbstractController
+    controller = None  # type: AbstractController
     
-    _args = None  # type: list
+    args = None  # type: list
 
     def run(self):
         """
@@ -53,4 +53,4 @@ class AbstractView:
 
     @property
     def args(self):
-        return self._args
+        return self.args

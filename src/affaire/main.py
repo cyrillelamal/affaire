@@ -25,9 +25,10 @@ class Main:
         Main.bound_db(db_path)
 
         settings_path = Main.get_settings_path(args)
+        fallback_json_path = Main.get_fallback_settings_path(args)
         json_args_provider_path = Main.get_json_args_provider_path(args)
 
-        settings_provider = JSONSettingsProvider(settings_path)
+        settings_provider = JSONSettingsProvider(settings_path, fallback_json_path)
         args_schema_provider = JSONArgsSchemaProvider(json_args_provider_path)
 
         # TODO: dispatcher interface
@@ -62,6 +63,14 @@ class Main:
         base_dir = Main.get_base_dir(args)
 
         settings_path = os.path.join(base_dir, 'settings.json')
+
+        return settings_path
+
+    @staticmethod
+    def get_fallback_settings_path(args: List[str]) -> str:
+        base_dir = Main.get_base_dir(args)
+
+        settings_path = os.path.join(base_dir, 'default_settings.json')
 
         return settings_path
 

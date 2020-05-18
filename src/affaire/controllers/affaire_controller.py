@@ -1,4 +1,5 @@
 import functools
+import time
 from typing import List, Callable
 
 
@@ -37,6 +38,9 @@ class AffaireController(AbstractController, SubjectInterface):
     """
     Observable
     """
+    GOOGLE_FETCH = 1
+    GOOGLE_PUSH = 2
+    
     def __init__(self,
                  settings_provider: 'SettingsProviderInterface',
                  args_schema_provider: 'ArgsSchemaProviderInterface'
@@ -51,6 +55,9 @@ class AffaireController(AbstractController, SubjectInterface):
         self._args_schema = None
 
         self._params = dict()  # mapped CLI params
+
+        # whether it needs synchronization
+        self._is_updated = False
 
     # implementation
     def register_observer(self, observer: 'ObserverInterface'):
@@ -92,10 +99,22 @@ class AffaireController(AbstractController, SubjectInterface):
 
     @notify('authenticate')
     def authenticate(self):
-        res = AuthenticationServer().authenticate()
-
-        if res.get('successful', False):
-            self.settings['isAuthorized'] = True
+        if self.settings['is_authorized']:
+            res = {'msg': 'You are authenticated already'}
+        else:
+            s = AuthenticationServer().authenticate()
+            res = s.res
+            
+            if res.get('error', False):
+                self.settings['is_authorized'] = False
+                self.settings['skip_authentication'] = True
+            else:
+                # token_exchange is invoked -> 'res' contains the token
+                expires_at = int(time.time()) + int(res.get('expires_in', -1))
+                self.settings['token_expires_at'] = expires_at
+                self.settings['access_token'] = res.get('access_token', None)
+                self.settings['is_authorized'] = True
+                res['msg'] = 'Congratulations! you are now logged in with Google'
 
         return res
 
@@ -115,6 +134,7 @@ class AffaireController(AbstractController, SubjectInterface):
                 raise UnknownParameterException(f'Unknown parameter {arg}')
 
         task.save()
+        self._is_updated = True
 
     @notify('task_read')
     def task_read(self):
@@ -167,6 +187,8 @@ class AffaireController(AbstractController, SubjectInterface):
                     setattr(task, field_name, val)
 
             task.save(False)
+
+        self._is_updated = True
 
     def task_delete(self):
         """
@@ -226,13 +248,24 @@ class AffaireController(AbstractController, SubjectInterface):
         """
         self._settings_provider.dump_settings(self.settings)
 
-    @staticmethod
-    def synchronize():
+    def synchronize(self, mode):
         """
-        Synchronize with VK
+        Synchronize with Google
         :return:
         """
-        AuthenticationServer().synchronize()
+        s = AuthenticationServer()
+
+        expires_at = self.settings.get('token_expires_at', -1)
+        if expires_at is None or expires_at <= int(time.time()) - 1:
+            s.authenticate()  # get the code and then the token
+            res = s.res
+
+            self.settings['token_expires_at'] = int(time.time()) + int(res.get('expires_in', -1))
+            self.settings['access_token'] = res.get('access_token')
+
+        if self._is_updated:
+            last_file_id = s.synchronize(Task, mode, self.settings['access_token'])
+            self.settings['last_file_id'] = last_file_id
 
     def _dispatch_meta(self, first_arg: str) -> Callable:
         """

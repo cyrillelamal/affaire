@@ -1,0 +1,12 @@
+{
+  "last_file_id": null,
+  "access_token": null,
+  "token_expires_at": null,
+  "is_authorized": false,
+  "skip_authentication": false,
+  "version": "1.0.0",
+  "help": {
+    "all": "\"create\" -b body [-e expires at]\n\"read\" [-b body] [-e expires at] [-a active] [-s sort by]\n\"delete\" [-b body] [-e expires at]\n\"auth\" log in and synchronize your tasks",
+    "panic": "There is no information you are looking for"
+  }
+}
