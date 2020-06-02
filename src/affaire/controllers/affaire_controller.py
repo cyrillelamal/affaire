@@ -1,3 +1,5 @@
+import datetime
+import re
 import functools
 import time
 from typing import List, Callable
@@ -128,6 +130,14 @@ class AffaireController(AbstractController, SubjectInterface):
         for arg, val in self._parse_args('task_create').items():
             for param, props in self._params.items():
                 if arg in [param, *props.get('aliases', list())]:
+                    if props.get('field', None) == 'expires_at':
+                        if '+' in val:
+                            digit = re.search(r'(\d+)', val)
+                            if digit:
+                                delta_days = int(digit.group(1))
+                            else:
+                                delta_days = 1
+                            val = datetime.datetime.now() + datetime.timedelta(days=delta_days)
                     setattr(task, props.get('field'), val)
                     break
             else:

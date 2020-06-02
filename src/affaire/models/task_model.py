@@ -1,4 +1,5 @@
 import datetime
+import re
 from typing import List
 
 
@@ -54,6 +55,14 @@ class Task(AbstractModel):
                                 raise UndefinedValueException(f'Parameter {param} requires a value')
                         elif field_name in ['is_active']:
                             qb.and_where(field_name, QueryBuilder.EQUALS, 1)
+                        elif field_name == 'expires_at':
+                            if val is not None and '+' in val:
+                                digit = re.search(r'(\d+)', val)
+                                if digit:
+                                    day_delta = int(digit.group(1))
+                                    val = datetime.datetime.now() + datetime.timedelta(days=day_delta)
+                                    val = val.strftime('%Y-%m-%d')
+                                    qb.and_where(field_name, QueryBuilder.LIKE, val)
                         else:
                             qb.and_where(field_name, QueryBuilder.LIKE, val)
                         break
@@ -75,7 +84,12 @@ class Task(AbstractModel):
 
     def __str__(self):
         txt = f'{self.body} '
-        if self.expires_at is not None:
-            txt += f'expires at {self.expires_at}'
+        dt = self.expires_at
+        if dt is not None:
+            groups = re.search(r'(.+):', self.expires_at)
+            if groups:
+                dt = groups.group(1)
+
+            txt += f'expires at {dt}'
 
         return txt.strip()

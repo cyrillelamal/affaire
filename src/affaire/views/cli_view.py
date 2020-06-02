@@ -45,13 +45,18 @@ class CLIView(AbstractView, ObserverInterface):
             print(e)
         except UndefinedValueException as e:
             print(e)
+        except TypeError:
+            print('Sorry unsupported for now')
 
     # implementation
     def stop(self):
         # update settings
         # synchronize
         if self.controller.settings.get('is_authorized', False):
-            self.controller.synchronize(AffaireController.GOOGLE_PUSH)
+            try:
+                self.controller.synchronize(AffaireController.GOOGLE_PUSH)
+            except Exception:
+                print('Error while synchronization')
         self.controller.dump_settings()
 
     # implementation
